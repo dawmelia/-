@@ -44,7 +44,7 @@ def main():
         print(f"已拉取 {len(all_data)} 条")
 
     # 直接输出到安卓assets目录，重点改动这里
-    out_path = "app/src/main/assets/sgs_skill.json"
+    out_path = "static/sgs_skill.json"
     with open(out_path, "w", encoding="utf-8") as f:
         json.dump(all_data, f, ensure_ascii=False, indent=2)
     print(f"✅ 全部完成，一共 {len(all_data)} 条，文件写入：{out_path}")
