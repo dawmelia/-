@@ -24,9 +24,6 @@ jobs:
           flutter-version: '3.24.0'
           cache: true
 
-      - name: 配置Pub镜像（解决拉取超时）
-        run: flutter pub config add --url https://pub.flutter-io.cn
-
       - name: Flutter pub get
         run: flutter pub get
 
