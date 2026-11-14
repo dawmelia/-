@@ -4,7 +4,6 @@ import json
 import time
 import os
 
-# 三国杀Bwiki主站
 BASE_URL = "https://wiki.biligame.com/sgs/api.php"
 HEADERS = {
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
@@ -25,43 +24,28 @@ def get_page_wikitext(page_name):
     pages = data["query"]["pages"]
     for _, page_info in pages.items():
         if "revisions" not in page_info:
-            print(f"【{page_name}】没有修订内容")
+            print(f"【{page_name}】没有修订内容，页面不存在！")
             return ""
         wikitext = page_info["revisions"][0]["slots"]["main"]["*"]
+        print(f"✅【{page_name}】成功拿到wikitext，长度={len(wikitext)}")
         return wikitext
     return ""
 
-def extract_skills(wikitext):
-    # 匹配 |技能1=xxx |技能2=xxx
-    pattern = re.compile(r"\|技能\s*(\d+)\s*=(.*?)(?=\|\w+=|\n\}\})", re.S)
-    matches = pattern.findall(wikitext)
-    skills = []
-    for _, skill_text in matches:
-        s = skill_text.strip()
-        if s:
-            skills.append(s)
-    return skills
-
 
 if __name__ == "__main__":
-    # 先只测试抓刘备
-    test_name = "刘备"
-    print(f"开始抓取：{test_name}")
+    test_name = "刘备(身份)"
+    print(f"\n===== 开始抓取：{test_name} =====")
     wiki_text = get_page_wikitext(test_name)
     if not wiki_text:
         print("获取wiki源码失败！")
+        out_data = []
     else:
-        print("成功拿到页面源码长度：", len(wiki_text))
-        skill_list = extract_skills(wiki_text)
-        print("解析到技能：", skill_list)
+        # 打印前1200字符，直接看模板原始文本，找字段名
+        print("\n===== 源码片段 =====")
+        print(wiki_text[:1200])
+        out_data = [{"name": test_name, "skills": []}]
 
-        out_data = [
-            {
-                "name": test_name,
-                "skills": skill_list
-            }
-        ]
-        os.makedirs("static", exist_ok=True)
-        with open("static/sgs_data.json", "w", encoding="utf-8") as f:
-            json.dump(out_data, f, ensure_ascii=False, indent=2)
-        print("写入json完成")
+    os.makedirs("static", exist_ok=True)
+    with open("static/sgs_data.json", "w", encoding="utf-8") as f:
+        json.dump(out_data, f, ensure_ascii=False, indent=2)
+    print("\n✅ 写入json完成")
