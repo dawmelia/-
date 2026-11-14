@@ -31,19 +31,28 @@ def get_page_wikitext(page_name):
         return wikitext
     return ""
 
+def extract_all_skills(wikitext):
+    # 匹配 |任意前缀技能=内容
+    pattern = re.compile(r"\|([^=]*技能)=(.*?)(?=\n\||\n\}\})", re.S)
+    matches = pattern.findall(wikitext)
+    skill_list = []
+    for key, val in matches:
+        val = val.strip()
+        skill_list.append(f"{key}：{val}")
+    return skill_list
+
 
 if __name__ == "__main__":
-    test_name = "刘备"
+    test_name = "关羽"
     print(f"\n===== 开始抓取：{test_name} =====")
     wiki_text = get_page_wikitext(test_name)
     if not wiki_text:
         print("获取wiki源码失败！")
         out_data = []
     else:
-        # 跳过前面基础信息，打印后半段，技能就在这里
-        print("\n===== WIKI源码后半段 =====")
-        print(wiki_text[1500:3000])
-        out_data = [{"name": test_name, "skills": []}]
+        skill_list = extract_all_skills(wiki_text)
+        print(f"\n解析到全部技能：{skill_list}")
+        out_data = [{"name": test_name, "skills": skill_list}]
 
     os.makedirs("static", exist_ok=True)
     with open("static/sgs_data.json", "w", encoding="utf-8") as f:
