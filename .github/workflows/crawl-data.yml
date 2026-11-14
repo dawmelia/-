@@ -1,6 +1,5 @@
 name: Crawl SGS Data
 on:
-  # 每天凌晨自动爬，也可以手动点run
   schedule:
     - cron: '0 0 * * *'
   workflow_dispatch:
@@ -8,8 +7,12 @@ on:
 jobs:
   crawl:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write # 重点！给提交写入仓库的权限
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
@@ -18,6 +21,7 @@ jobs:
         run: pip install requests
       - name: Run crawler
         run: |
+          mkdir -p static
           cat > crawl.py <<'EOF'
 import requests, re, json, time
 BASE_URL = "https://wiki.biligame.com/sgs/api.php"
