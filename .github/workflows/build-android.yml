@@ -27,6 +27,13 @@ jobs:
       - name: Flutter pub get
         run: flutter pub get
 
+      # 重点：新建临时干净项目，复制android目录到当前项目
+      - name: Generate android scaffold safely
+        run: |
+          flutter create tmp_app --platforms=android
+          cp -r tmp_app/android ./
+          rm -rf tmp_app
+
       - name: Build Release APK
         run: flutter build apk --release
 
