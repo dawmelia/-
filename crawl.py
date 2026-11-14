@@ -33,16 +33,16 @@ def get_page_wikitext(page_name):
 
 
 if __name__ == "__main__":
-    test_name = "刘备(身份)"
+    test_name = "刘备"
     print(f"\n===== 开始抓取：{test_name} =====")
     wiki_text = get_page_wikitext(test_name)
     if not wiki_text:
         print("获取wiki源码失败！")
         out_data = []
     else:
-        # 打印前1200字符，直接看模板原始文本，找字段名
-        print("\n===== 源码片段 =====")
-        print(wiki_text[:1200])
+        # 打印全部前1500字符，看wiki原始模板
+        print("\n===== WIKI源码片段 =====")
+        print(wiki_text[:1500])
         out_data = [{"name": test_name, "skills": []}]
 
     os.makedirs("static", exist_ok=True)
