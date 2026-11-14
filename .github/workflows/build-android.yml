@@ -27,12 +27,16 @@ jobs:
       - name: Flutter pub get
         run: flutter pub get
 
-      # 重点：新建临时干净项目，复制android目录到当前项目
       - name: Generate android scaffold safely
         run: |
           flutter create tmp_app --platforms=android
           cp -r tmp_app/android ./
           rm -rf tmp_app
+
+      # 重点：升级kotlin插件版本，适配Flutter3.24
+      - name: Patch Kotlin plugin version
+        run: |
+          sed -i 's/id "org.jetbrains.kotlin.android" version "[0-9.]*"/id "org.jetbrains.kotlin.android" version "2.0.20"/g' android/settings.gradle
 
       - name: Build Release APK
         run: flutter build apk --release
