@@ -7,6 +7,12 @@ HEADERS = {
 }
 API = "https://wiki.biligame.com/sgs/api.php"
 
+def get_first_value(lst):
+    # 安全取列表第一个元素，空列表返回空字符串
+    if isinstance(lst, list) and len(lst) > 0:
+        return lst[0]
+    return ""
+
 def smw_ask_query(offset=0):
     params = {
         "action": "ask",
@@ -25,10 +31,14 @@ def main():
         if not results:
             break
         for skill_name, info in results.items():
+            printouts = info.get("printouts", {})
+            skill = skill_name.replace("技能:", "")
+            hero = get_first_value(printouts.get("所属武将", []))
+            skill_type = get_first_value(printouts.get("技能类型", []))
             all_data.append({
-                "技能": skill_name.replace("技能:", ""),
-                "所属武将": info.get("printouts", {}).get("所属武将", [None])[0],
-                "技能类型": info.get("printouts", {}).get("技能类型", [None])[0]
+                "技能": skill,
+                "所属武将": hero,
+                "技能类型": skill_type
             })
         offset += 500
         print(f"已拉取 {len(all_data)} 条")
