@@ -40,9 +40,9 @@ if __name__ == "__main__":
         print("获取wiki源码失败！")
         out_data = []
     else:
-        # 打印全部前1500字符，看wiki原始模板
-        print("\n===== WIKI源码片段 =====")
-        print(wiki_text[:1500])
+        # 跳过前面基础信息，打印后半段，技能就在这里
+        print("\n===== WIKI源码后半段 =====")
+        print(wiki_text[1500:3000])
         out_data = [{"name": test_name, "skills": []}]
 
     os.makedirs("static", exist_ok=True)
