@@ -27,10 +27,6 @@ jobs:
       - name: Flutter pub get
         run: flutter pub get
 
-      # ==========新增这一行，自动生成android平台文件==========
-      - name: 生成Android平台脚手架
-        run: flutter create . --platforms=android
-
       - name: Build Release APK
         run: flutter build apk --release
 
