@@ -1,6 +1,7 @@
 import requests
 import json
 import os
+import time
 
 HEADERS = {
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
@@ -22,13 +23,21 @@ def smw_ask_query(offset=0):
         "format": "json"
     }
     resp = requests.get(API, params=params, headers=HEADERS, timeout=30)
-    return resp.json()
+    # 新增容错：先判断返回是否是合法json
+    try:
+        return resp.json()
+    except json.JSONDecodeError:
+        print(f"⚠️ offset={offset} 接口返回非JSON，被拦截了！响应文本：{resp.text[:200]}")
+        return None
 
 def main():
     all_data = []
     offset = 0
     while True:
         ret = smw_ask_query(offset)
+        if ret is None:
+            # 拿到非法响应，直接退出循环，已经抓到的数据会保存
+            break
         results = ret.get("query", {}).get("results", {})
         if not results:
             break
@@ -46,9 +55,10 @@ def main():
             })
         offset += 500
         print(f"已拉取 {len(all_data)} 条")
+        time.sleep(1)  # 每次分页请求后延时1秒，降低风控触发概率
 
     os.makedirs("static", exist_ok=True)
-    with open("static/sgs_data.json", "w", encoding="utf-8") as f:
+    with open("static/sgs_skill.json", "w", encoding="utf-8") as f:
         json.dump(all_data, f, ensure_ascii=False, indent=2)
     print(f"✅ 全部完成，一共 {len(all_data)} 条")
 
