@@ -1,60 +1,42 @@
 import requests
-import re
 import json
-import time
 import os
 
-BASE_URL = "https://wiki.biligame.com/sgs/api.php"
 HEADERS = {
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-    "Accept-Language": "zh-CN,zh;q=0.9"
 }
+API = "https://wiki.biligame.com/sgs/api.php"
 
-def get_page_wikitext(page_name):
+def smw_ask_query(offset=0):
     params = {
-        "action": "query",
-        "titles": page_name,
-        "prop": "revisions",
-        "rvslots": "*",
-        "rvprop": "content",
+        "action": "ask",
+        "query": "[[分类:技能]]|?所属武将|?技能类型|limit=500|offset="+str(offset),
         "format": "json"
     }
-    resp = requests.get(BASE_URL, params=params, headers=HEADERS, timeout=20)
-    data = resp.json()
-    pages = data["query"]["pages"]
-    for _, page_info in pages.items():
-        if "revisions" not in page_info:
-            print(f"【{page_name}】没有修订内容，页面不存在！")
-            return ""
-        wikitext = page_info["revisions"][0]["slots"]["main"]["*"]
-        print(f"✅【{page_name}】成功拿到wikitext，长度={len(wikitext)}")
-        return wikitext
-    return ""
+    resp = requests.get(API, params=params, headers=HEADERS, timeout=30)
+    return resp.json()
 
-def extract_all_skills(wikitext):
-    # 匹配 |任意前缀技能=内容
-    pattern = re.compile(r"\|([^=]*技能)=(.*?)(?=\n\||\n\}\})", re.S)
-    matches = pattern.findall(wikitext)
-    skill_list = []
-    for key, val in matches:
-        val = val.strip()
-        skill_list.append(f"{key}：{val}")
-    return skill_list
-
-
-if __name__ == "__main__":
-    test_name = "关羽"
-    print(f"\n===== 开始抓取：{test_name} =====")
-    wiki_text = get_page_wikitext(test_name)
-    if not wiki_text:
-        print("获取wiki源码失败！")
-        out_data = []
-    else:
-        skill_list = extract_all_skills(wiki_text)
-        print(f"\n解析到全部技能：{skill_list}")
-        out_data = [{"name": test_name, "skills": skill_list}]
+def main():
+    all_data = []
+    offset = 0
+    while True:
+        ret = smw_ask_query(offset)
+        results = ret.get("query", {}).get("results", {})
+        if not results:
+            break
+        for skill_name, info in results.items():
+            all_data.append({
+                "技能": skill_name.replace("技能:", ""),
+                "所属武将": info.get("printouts", {}).get("所属武将", [None])[0],
+                "技能类型": info.get("printouts", {}).get("技能类型", [None])[0]
+            })
+        offset += 500
+        print(f"已拉取 {len(all_data)} 条")
 
     os.makedirs("static", exist_ok=True)
-    with open("static/sgs_data.json", "w", encoding="utf-8") as f:
-        json.dump(out_data, f, ensure_ascii=False, indent=2)
-    print("\n✅ 写入json完成")
+    with open("static/sgs_skill.json", "w", encoding="utf-8") as f:
+        json.dump(all_data, f, ensure_ascii=False, indent=2)
+    print(f"✅ 全部完成，一共 {len(all_data)} 条")
+
+if __name__ == "__main__":
+    main()
