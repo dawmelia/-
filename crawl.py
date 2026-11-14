@@ -1,53 +1,64 @@
-import requests
 import json
-import os
 
-HEADERS = {
-    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-}
-API = "https://wiki.biligame.com/sgs/api.php"
-
-def get_first_value(lst):
-    # 安全取列表第一个元素，空列表返回空字符串
-    if isinstance(lst, list) and len(lst) > 0:
-        return lst[0]
-    return ""
-
-def smw_ask_query(offset=0):
-    params = {
-        "action": "ask",
-        "query": "[[分类:技能]]|?所属武将|?技能类型|limit=500|offset="+str(offset),
-        "format": "json"
-    }
-    resp = requests.get(API, params=params, headers=HEADERS, timeout=30)
-    return resp.json()
+def get_first(arr):
+    if not arr:
+        return ""
+    return arr[0]
 
 def main():
-    all_data = []
+    import requests
+    base_url = "https://wiki.sgs.qq.com/api.php"
+    params = {
+        "action": "ask",
+        "query": "[[Category:技能]]|?技能|?所属武将|?技能类型",
+        "format": "json",
+        "limit": 500
+    }
     offset = 0
+    all_data = []
     while True:
-        ret = smw_ask_query(offset)
-        results = ret.get("query", {}).get("results", {})
+        params["offset"] = offset
+        resp = requests.get(base_url, params=params, timeout=15)
+        res = resp.json()
+        results = res.get("query", {}).get("results", {})
         if not results:
             break
-        for skill_name, info in results.items():
-            printouts = info.get("printouts", {})
-            skill = skill_name.replace("技能:", "")
-            hero = get_first_value(printouts.get("所属武将", []))
-            skill_type = get_first_value(printouts.get("技能类型", []))
+        for item in results.values():
+            printouts = item.get("printouts", {})
+            skill = get_first(printouts.get("技能", []))
+            hero = get_first(printouts.get("所属武将", []))
+            # 跳过武将为空的技能（全局机制、阵法等）
+            if not hero or not skill:
+                continue
             all_data.append({
-                "技能": skill,
-                "所属武将": hero,
-                "技能类型": skill_type
+                "skill": skill,
+                "hero": hero
             })
         offset += 500
-        print(f"已拉取 {len(all_data)} 条")
+        print(f"已拉取 {len(all_data)} 条原始技能")
 
-    # 直接输出到安卓assets目录，重点改动这里
+    # ========== 重点：按武将分组，合并同一个武将的多个技能 ==========
+    group_dict = {}
+    for row in all_data:
+        h = row["hero"]
+        s = row["skill"]
+        if h not in group_dict:
+            group_dict[h] = []
+        if s not in group_dict[h]:
+            group_dict[h].append(s)
+    # 转成App需要的数组格式
+    out_list = []
+    for hero_name, skill_list in group_dict.items():
+        out_list.append({
+            "name": hero_name,
+            "skills": skill_list
+        })
+
+    # 输出到 static/sgs_data.json
     out_path = "static/sgs_data.json"
     with open(out_path, "w", encoding="utf-8") as f:
-        json.dump(all_data, f, ensure_ascii=False, indent=2)
-    print(f"✅ 全部完成，一共 {len(all_data)} 条，文件写入：{out_path}")
+        json.dump(out_list, f, ensure_ascii=False, indent=2)
+    print(f"✅ 完成！一共 {len(out_list)} 名武将，文件写入：{out_path}")
 
 if __name__ == "__main__":
     main()
