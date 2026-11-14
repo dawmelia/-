@@ -17,7 +17,7 @@ def get_first_value(lst):
 def smw_ask_query(offset=0, retry=2):
     params = {
         "action": "ask",
-        "query": "[[分类:技能]]|?所属武将|?技能类型|?技能内容",
+        "query": "[[分类:技能]]|?所属武将|?技能类型",
         "limit": 500,
         "offset": offset,
         "format": "json"
@@ -49,21 +49,34 @@ def main():
             skill = skill_name.replace("技能:", "")
             hero = get_first_value(printouts.get("所属武将", []))
             skill_type = get_first_value(printouts.get("技能类型", []))
-            skill_content = get_first_value(printouts.get("技能内容", []))
+            # 清洗首尾空格
+            skill = skill.strip()
+            hero = hero.strip()
+            skill_type = skill_type.strip()
             all_data.append({
                 "技能": skill,
                 "所属武将": hero,
-                "技能类型": skill_type,
-                "技能内容": skill_content
+                "技能类型": skill_type
             })
         offset += 500
         print(f"已拉取 {len(all_data)} 条")
         time.sleep(1)
 
+    # ========== 去重逻辑：(技能,所属武将)相同才算重复，同名不同武将保留 ==========
+    seen_keys = set()
+    clean_data = []
+    for item in all_data:
+        key = (item["技能"], item["所属武将"])
+        if key not in seen_keys:
+            seen_keys.add(key)
+            clean_data.append(item)
+    print(f"\n去重前：{len(all_data)} 条，去重后：{len(clean_data)} 条")
+    # =========================================================================
+
     os.makedirs("static", exist_ok=True)
     with open("static/sgs_data.json", "w", encoding="utf-8") as f:
-        json.dump(all_data, f, ensure_ascii=False, indent=2)
-    print(f"✅ 全部完成，一共 {len(all_data)} 条")
+        json.dump(clean_data, f, ensure_ascii=False, indent=2)
+    print(f"✅ 全部完成，一共 {len(clean_data)} 条")
 
 if __name__ == "__main__":
     main()
