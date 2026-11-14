@@ -14,7 +14,7 @@ def get_first_value(lst):
         return lst[0]
     return ""
 
-def smw_ask_query(offset=0):
+def smw_ask_query(offset=0, retry=2):
     params = {
         "action": "ask",
         "query": "[[分类:技能]]|?所属武将|?技能类型|?技能内容",
@@ -22,13 +22,17 @@ def smw_ask_query(offset=0):
         "offset": offset,
         "format": "json"
     }
-    resp = requests.get(API, params=params, headers=HEADERS, timeout=30)
-    # 新增容错：先判断返回是否是合法json
-    try:
-        return resp.json()
-    except json.JSONDecodeError:
-        print(f"⚠️ offset={offset} 接口返回非JSON，被拦截了！响应文本：{resp.text[:200]}")
-        return None
+    for i in range(retry + 1):
+        resp = requests.get(API, params=params, headers=HEADERS, timeout=30)
+        try:
+            return resp.json()
+        except json.JSONDecodeError:
+            if i < retry:
+                print(f"⚠️ offset={offset} 被拦截，第{i+1}次重试，等待5s...")
+                time.sleep(5)
+            else:
+                print(f"❌ offset={offset} 重试全部失败，响应文本：{resp.text[:200]}")
+                return None
 
 def main():
     all_data = []
@@ -36,7 +40,6 @@ def main():
     while True:
         ret = smw_ask_query(offset)
         if ret is None:
-            # 拿到非法响应，直接退出循环，已经抓到的数据会保存
             break
         results = ret.get("query", {}).get("results", {})
         if not results:
@@ -55,10 +58,10 @@ def main():
             })
         offset += 500
         print(f"已拉取 {len(all_data)} 条")
-        time.sleep(1)  # 每次分页请求后延时1秒，降低风控触发概率
+        time.sleep(1)
 
     os.makedirs("static", exist_ok=True)
-    with open("static/sgs_skill.json", "w", encoding="utf-8") as f:
+    with open("static/sgs_data.json", "w", encoding="utf-8") as f:
         json.dump(all_data, f, ensure_ascii=False, indent=2)
     print(f"✅ 全部完成，一共 {len(all_data)} 条")
 
